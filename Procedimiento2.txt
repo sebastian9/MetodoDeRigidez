@@ -1,0 +1,34 @@
+Procedimiento 2
+
+Preguntar el número de elementos .
+Preguntar el número de nodos . 
+	Generar matriz de rigidez total (3)nodosX(3)nodos .
+Preguntar nodos inicial y final de cada elemento . 
+	si no existen el/los nodos, crear uno nuevo; si existe uno, asociar las fuerzas .
+		**** Si hay una conexión entre distintos tipos de elemento, no importa, todos los nodos de los elementos tienen
+			3 gl, con un orden determinado. Si, por ejemplo, se tratara de una armadura, aunque tuviera el gl del 
+			momento, la fuerza nodal y equivalente sería cero, por lo que todo el renglón de la ecuación matricial es 0.
+	los nodos son un vector: cada nodo tiene un número, un par de coordenadas y 3 grados de libertad asociados . 
+			el gl es el índice glxgl de k total y glx1 de fuerzas .
+	para cada elemento almacenar lo siguiente en Struct de elementos:
+		Calcular Largo y dirección .
+		Nodo inicial y final .
+		Preguntar: tipo de elemento, E, I y/o A .
+		Generar matriz de rigidez local .
+			no importa si es barra, viga o marco, la plantilla es la misma: .
+				para barras I = 0 .
+				para vigas A = 0 .
+		Generar matriz de rigidez global .
+				sólo hay una matriz de trasformación .
+		Sumar contribución a matriz de rigidez total .
+			cada nodo tiene asociados sus grados de libertad, a partir de ahí sumar términos de la matriz del elemento a la total .
+Generar el vector de fuerzas nodales .
+Generar el vector de fuerzas equivalentes
+Identificar los grados de libertad para generar KPP
+	preguntar numero de grados libres
+	para cada grado libre trazarlo preguntando: qué elemento es, nodo inicial o final, dy dx o r
+	entonces hacer en k_total_pp fila y columna de la restricción = 0
+	MAL *** NO hacer KPP, simplemente hacer un vector de fuerzas en el que las fuerzas en los gl restringidos sean cero
+Resolver los desplazamnientos nodales por matriz inversa de KPP
+Con la matriz de rigidez total y el vector de desplazamientos totales resolver las reacciones
+Clacular fuerzas internas
