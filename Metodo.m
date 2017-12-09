@@ -1,4 +1,5 @@
 %% Setup
+clear; clc; close all;
 ne = 2; % input('Inserte el número de elementos que componen a la estructura\n');
 nn = 3; % input('Inserte el número de nodos que componen a la estructura\n');
 
