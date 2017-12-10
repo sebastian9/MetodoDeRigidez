@@ -1,15 +1,14 @@
 %% Setup
 clear; clc; close all;
-ne = 13; % input('Inserte el número de elementos que componen a la estructura\n');
-nn = 12; % input('Inserte el número de nodos que componen a la estructura\n');
+ne = input('Inserte el número de elementos que componen a la estructura\n');
+nn = input('Inserte el número de nodos que componen a la estructura\n');
 
 n = 1; % Nodo en registro
 nodos = struct; % Base de datos de nodos:
-for i=1:nn, nodos.(['nodo_',num2str(i)]) = struct('x',100000,'y',100000); end
+for i=1:nn, nodos.(['nodo_',num2str(i)]) = struct('x',1e10,'y',1e10); end
 k_total = zeros(nn*3); % Matriz de Rigidez Total
 
 fn = zeros(nn*3,1); % Vector de Fuerzas Nodales
-feq = fn; % Vector de Fuerzas Equivalentes
 
 %% Generar Elementos y su Contribución a la Matriz Global
 for i=1:ne
@@ -50,7 +49,7 @@ for i=1:ne
     if input('¿Desea cambiar E, I o A?\nSí: 1\nNo: 0\n')
         E = input(['Inserte el módulo de Elasticidad del elemento ',num2str(i),'\n']); % 2e11; 
         I = input(['Inserte la Inercia del elemento ',num2str(i),' I=0 para barras\n']); % 171/100^4;
-        A = input(['Inserte el área de la ST del elemento ',num2str(i),' A=0 para vigas\n']); % 10.6/100^2 6/100^2; 
+        A = input(['Inserte el área de la ST del elemento ',num2str(i),' A=0 para vigas\n']); % 10.6/100^2 pi*0.025^2; 
     end
     elementos.(['elemento_',num2str(i)]).e = E;
     elementos.(['elemento_',num2str(i)]).inercia = I;
@@ -74,16 +73,16 @@ for i=1:ne
         end
     end
 end
-% %% Generar el Vector de Fuerzas Nodales
-% for i=1:input('¿Cuántas Fuerzas Nodales Existen?\n')
-%     elemento = input(['¿En qué elemento se encuentra la Fuerza Nodal ', num2str(i),'?\n']);
-%     if input(['¿En qué nodo se encuentra la Fuerza Nodal ', num2str(i),'?\nInicial: 1\nFinal: 0\n'])
-%         lugar = 'nodo_inicial'; else lugar = 'nodo_final'; end
-%     gl = input(['¿La Fuerza Nodal ', num2str(i),'es?\nHorizontal: 1\nVertical: 2\nMomento: 3\n']); % Es el caso general, no es "necesario" hacer casos particulares
-%     j = (elementos.(['elemento_',num2str(elemento)]).(lugar)-1)*3 + gl;
-%     fn(j) = input(['Ingrese la magnitud de la Fuerza Nodal ', num2str(i),'\n']);
-% end
-%% Generar k_total_pp, fn_pp, y feq_pp
+%% Generar el Vector de Fuerzas Nodales
+for i=1:input('¿Cuántas Fuerzas Nodales Existen?\n')
+    elemento = input(['¿En qué elemento se encuentra la Fuerza Nodal ', num2str(i),'?\n']);
+    if input(['¿En qué nodo se encuentra la Fuerza Nodal ', num2str(i),'?\nInicial: 1\nFinal: 0\n'])
+        lugar = 'nodo_inicial'; else lugar = 'nodo_final'; end
+    gl = input(['¿La Fuerza Nodal ', num2str(i),'es?\nHorizontal: 1\nVertical: 2\nMomento: 3\n']); % Es el caso general, no es "necesario" hacer casos particulares
+    j = (elementos.(['elemento_',num2str(elemento)]).(lugar)-1)*3 + gl;
+    fn(j) = input(['Ingrese la magnitud de la Fuerza Nodal ', num2str(i),'\n']);
+end
+%% Generar kpp y fpp
 GLR = zeros(input('¿Cuántos grados de libertad restringidos existen?\n'),1);
 for i=1:length(GLR)
     elemento = input(['¿En qué elemento se encuentra el gl restringido ', num2str(i),'?\n']);
@@ -100,11 +99,54 @@ for i=1:nn*3
     for j=1:nn*3
         if ~ismember(i,GLR) && ~ismember(j,GLR)
             kpp(mod(GLLi,GLL)+1,ceil((GLLi+1)/GLL)) = k_total(j,i);
-            GLLi = GLLi + 1;
+            GLLi = GLLi + 1;            
         end
     end
 end
+GLLi = 1;
+fpp = zeros(GLL,1);
+for i=1:nn*3
+    if ~ismember(i,GLR)
+        fpp(GLLi) = fn(i);
+        GLLi = GLLi + 1;
+    end
+end
 %% Resolver los Desplazamientos
-% delta = k_total_pp^-1*fn_pp;  % Vector de desplazamientos
+deltapp = kpp^-1*fpp;  % Vector de desplazamientos
+%% Calcular Reacciones
+GLLi = 1;
+delta = zeros(nn*3,1);
+for i=1:nn*3
+    if ~ismember(i,GLR)
+        delta(i) = deltapp(GLLi);
+        GLLi = GLLi + 1;
+    end
+end
+R =  k_total*delta; % Vector de Reacciones
+%% Graficar
+% crear el vector de nodos
+nodosv = zeros(nn,2);
+for i=1:nn
+   nodosv(i,1) = nodos.(['nodo_',num2str(i)]).x;
+   nodosv(i,2) = nodos.(['nodo_',num2str(i)]).y; 
+end
+% graficar estructura sin deformar
+plot(nodosv(:,1),nodosv(:,2),'k.')
+hold on; axis equal;
+for i=1:ne
+    nodose = [ elementos.(['elemento_',num2str(i)]).nodo_inicial elementos.(['elemento_',num2str(i)]).nodo_final ];
+    nodoxy = nodosv(nodose, :);
+    plot(nodoxy(:,1),nodoxy(:,2),'k--')
+end
+% Graficar estructura deformada
+lupa = 100;
+delta_ordenado = transpose(reshape(delta,3,nn));
+nodosv2 = nodosv + lupa*delta_ordenado(:,1:2);
+plot(nodosv2(:,1),nodosv2(:,2),'o','MarkerEdgeColor','k','MarkerFaceColor','r','MarkerSize',10)
+for i=1:ne
+    nodose = [ elementos.(['elemento_',num2str(i)]).nodo_inicial elementos.(['elemento_',num2str(i)]).nodo_final ];
+    nodoxy = nodosv2(nodose, :);
+    plot(nodoxy(:,1),nodoxy(:,2),'k-','LineWidth',2)
+end
 %% Generar archivo con variables generadas
-% save metodo_de_rigidez elementos k_total nodos T k_total_pp
+save metodo_de_rigidez elementos k_total nodos kpp delta fn fpp 
