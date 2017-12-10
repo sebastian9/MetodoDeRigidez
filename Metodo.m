@@ -1,7 +1,7 @@
 %% Setup
 clear; clc; close all;
-ne = 2; % input('Inserte el número de elementos que componen a la estructura\n');
-nn = 3; % input('Inserte el número de nodos que componen a la estructura\n');
+ne = 13; % input('Inserte el número de elementos que componen a la estructura\n');
+nn = 12; % input('Inserte el número de nodos que componen a la estructura\n');
 
 n = 1; % Nodo en registro
 nodos = struct; % Base de datos de nodos:
@@ -14,7 +14,6 @@ feq = fn; % Vector de Fuerzas Equivalentes
 %% Generar Elementos y su Contribución a la Matriz Global
 for i=1:ne
     % Elemento en registro: elementos.(['elemento_',num2str(i)])
-    
     xi = input(['Coordenada x inicial del elemento ',num2str(i),'\n']);
     yi = input(['Coordenada y inicial del elemento ',num2str(i),'\n']);
     xf = input(['Coordenada x final del elemento ',num2str(i),'\n']);
@@ -51,7 +50,7 @@ for i=1:ne
     if input('¿Desea cambiar E, I o A?\nSí: 1\nNo: 0\n')
         E = input(['Inserte el módulo de Elasticidad del elemento ',num2str(i),'\n']); % 2e11; 
         I = input(['Inserte la Inercia del elemento ',num2str(i),' I=0 para barras\n']); % 171/100^4;
-        A = input(['Inserte el área de la ST del elemento ',num2str(i),' A=0 para vigas\n']); % 6/100^2; 
+        A = input(['Inserte el área de la ST del elemento ',num2str(i),' A=0 para vigas\n']); % 10.6/100^2 6/100^2; 
     end
     elementos.(['elemento_',num2str(i)]).e = E;
     elementos.(['elemento_',num2str(i)]).inercia = I;
@@ -75,38 +74,37 @@ for i=1:ne
         end
     end
 end
-%}
-%% Generar el Vector de Fuerzas Nodales 
-for i=1:input('¿Cuántas Fuerzas Nodales Existen?\n')
-    elemento = input(['¿En qué elemento se encuentra la Fuerza Nodal ', num2str(i),'?\n']);
-    if input(['¿En qué nodo se encuentra la Fuerza Nodal ', num2str(i),'?\nInicial: 1\nFinal: 0\n'])
-        lugar = 'nodo_inicial'; else lugar = 'nodo_final'; end
-    gl = input(['¿La Fuerza Nodal ', num2str(i),'es?\nHorizontal: 1\nVertical: 2\nMomento: 3\n']); % Es el caso general, no es "necesario" hacer casos particulares
-    j = (elementos.(['elemento_',num2str(elemento)]).(lugar)-1)*3 + gl;
-    fn(j) = input(['Ingrese la magnitud de la Fuerza Nodal ', num2str(i),'\n']);
-end
+% %% Generar el Vector de Fuerzas Nodales
+% for i=1:input('¿Cuántas Fuerzas Nodales Existen?\n')
+%     elemento = input(['¿En qué elemento se encuentra la Fuerza Nodal ', num2str(i),'?\n']);
+%     if input(['¿En qué nodo se encuentra la Fuerza Nodal ', num2str(i),'?\nInicial: 1\nFinal: 0\n'])
+%         lugar = 'nodo_inicial'; else lugar = 'nodo_final'; end
+%     gl = input(['¿La Fuerza Nodal ', num2str(i),'es?\nHorizontal: 1\nVertical: 2\nMomento: 3\n']); % Es el caso general, no es "necesario" hacer casos particulares
+%     j = (elementos.(['elemento_',num2str(elemento)]).(lugar)-1)*3 + gl;
+%     fn(j) = input(['Ingrese la magnitud de la Fuerza Nodal ', num2str(i),'\n']);
+% end
 %% Generar k_total_pp, fn_pp, y feq_pp
-k_total_pp = k_total;
-fn_pp = fn;
-for i=1:input('¿Cuántas grados de libertad restringidos existen?\n')
+GLR = zeros(input('¿Cuántos grados de libertad restringidos existen?\n'),1);
+for i=1:length(GLR)
     elemento = input(['¿En qué elemento se encuentra el gl restringido ', num2str(i),'?\n']);
     if input(['¿En qué nodo se encuentra el gl restringido ', num2str(i),'?\nInicial: 1\nFinal: 0\n'])
-        lugar = 'nodo_inicial'; else lugar = 'nodo_final'; end
-    gl = input(['¿El gl restringido corresponde a ', num2str(i),'es?\nEl desplazamiento en x: 1\nEl desplazamiento en y: 2\nLa rotación: 3\n']); % Es el caso general, no es "necesario" hacer casos particulares
-    j = (elementos.(['elemento_',num2str(elemento)]).(lugar)-1)*3 + gl;
-    fn(j) = 0;
-    k_total_pp(j,:) = 0;
-    k_total_pp(:,j) = 0;
+        lugar = 'nodo_inicial'; else, lugar = 'nodo_final'; end
+    gl = input(['¿El gl restringido ', num2str(i),'es?\nEl desplazamiento en x: 1\nEl desplazamiento en y: 2\nLa rotación: 3\n']); % Es el caso general, no es "necesario" hacer casos particulares
+    GLR(i) = (elementos.(['elemento_',num2str(elemento)]).(lugar)-1)*3 + gl;
 end
 % Formar Kpp
-k = 0;
-l = 0;
+GLLi = 0;
+GLL = nn*3-length(GLR);
+kpp = zeros(GLL);
 for i=1:nn*3
-   for j = 1:nn*3
-       if ~k_total_pp(i,j); k_pp(k,l) = ~k_total_pp(i,j); end
-   end
+    for j=1:nn*3
+        if ~ismember(i,GLR) && ~ismember(j,GLR)
+            kpp(mod(GLLi,GLL)+1,ceil((GLLi+1)/GLL)) = k_total(j,i);
+            GLLi = GLLi + 1;
+        end
+    end
 end
 %% Resolver los Desplazamientos
-delta = k_total_pp^-1*fn_pp;  % Vector de desplazamientos
+% delta = k_total_pp^-1*fn_pp;  % Vector de desplazamientos
 %% Generar archivo con variables generadas
 % save metodo_de_rigidez elementos k_total nodos T k_total_pp
