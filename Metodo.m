@@ -139,7 +139,7 @@ for i=1:ne
     plot(nodoxy(:,1),nodoxy(:,2),'k--')
 end
 % Graficar estructura deformada
-lupa = 100;
+lupa = 200;
 delta_ordenado = transpose(reshape(delta,3,nn));
 nodosv2 = nodosv + lupa*delta_ordenado(:,1:2);
 plot(nodosv2(:,1),nodosv2(:,2),'o','MarkerEdgeColor','k','MarkerFaceColor','r','MarkerSize',10)
@@ -149,4 +149,4 @@ for i=1:ne
     plot(nodoxy(:,1),nodoxy(:,2),'k-','LineWidth',2)
 end
 %% Generar archivo con variables generadas
-save metodo_de_rigidez elementos k_total nodos kpp delta fn fpp 
+save metodo_de_rigidez elementos k_total nodos kpp delta fn fpp R
