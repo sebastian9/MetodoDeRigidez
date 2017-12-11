@@ -123,6 +123,20 @@ for i=1:nn*3
     end
 end
 R =  k_total*delta; % Vector de Reacciones
+%% Calcular Fuerzas Internas
+% Crear vectores de desplazamiento global del elemento
+for i=1:ne
+    ni = elementos.(['elemento_',num2str(i)]).nodo_inicial;
+    nf = elementos.(['elemento_',num2str(i)]).nodo_final;
+    elementos.(['elemento_',num2str(i)]).delta_global = zeros(6,1);
+    elementos.(['elemento_',num2str(i)]).delta_global(1:3) = delta(1+(ni-1)*3:3+(ni-1)*3);
+    elementos.(['elemento_',num2str(i)]).delta_global(4:6) = delta(1+(nf-1)*3:3+(nf-1)*3);
+    theta = elementos.(['elemento_',num2str(i)]).theta;
+    % Matriz de Transformación
+    T = [ cos(theta), -sin(theta), 0,0,0,0; sin(theta), cos(theta), 0,0,0,0; 0, 0, 1,0,0,0; 0,0,0,cos(theta), -sin(theta), 0; 0,0,0, sin(theta), cos(theta), 0; 0,0,0, 0, 0, 1 ];
+    elementos.(['elemento_',num2str(i)]).delta_local = transpose(T)*elementos.(['elemento_',num2str(i)]).delta_global;
+    elementos.(['elemento_',num2str(i)]).Fuerzas_Internas = elementos.(['elemento_',num2str(i)]).k *  elementos.(['elemento_',num2str(i)]).delta_local;
+end
 %% Graficar
 % crear el vector de nodos
 nodosv = zeros(nn,2);
@@ -139,7 +153,7 @@ for i=1:ne
     plot(nodoxy(:,1),nodoxy(:,2),'k--')
 end
 % Graficar estructura deformada
-lupa = 200;
+lupa = 100;
 delta_ordenado = transpose(reshape(delta,3,nn));
 nodosv2 = nodosv + lupa*delta_ordenado(:,1:2);
 plot(nodosv2(:,1),nodosv2(:,2),'o','MarkerEdgeColor','k','MarkerFaceColor','r','MarkerSize',10)
@@ -148,5 +162,6 @@ for i=1:ne
     nodoxy = nodosv2(nodose, :);
     plot(nodoxy(:,1),nodoxy(:,2),'k-','LineWidth',2)
 end
+grid
 %% Generar archivo con variables generadas
-save metodo_de_rigidez elementos k_total nodos kpp delta fn fpp R
+save metodo_de_rigidez elementos k_total nodos kpp delta fn fpp R nn ne
